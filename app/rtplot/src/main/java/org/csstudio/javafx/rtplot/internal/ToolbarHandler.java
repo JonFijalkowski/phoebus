@@ -51,13 +51,14 @@ public class ToolbarHandler<XTYPE extends Comparable<XTYPE>>
         ZOOM_IN,
         ZOOM_OUT,
         PAN,
+        EDIT,
         POINTER
     };
 
     final private RTPlot<XTYPE> plot;
 
     final private ToolBar toolbar;
-    private ToggleButton crosshair, zoom_in, zoom_out, pan, pointer;
+    private ToggleButton crosshair, zoom_in, zoom_out, pan, edit, pointer;
     private Button edit_annotation;
 
     /** Have any custom items been added? */
@@ -181,6 +182,7 @@ public class ToolbarHandler<XTYPE extends Comparable<XTYPE>>
         zoom_in = newToggleButton(ToolIcons.ZOOM_IN, Messages.Zoom_In_TT);
         zoom_out = newToggleButton(ToolIcons.ZOOM_OUT, Messages.Zoom_Out_TT);
         pan = newToggleButton(ToolIcons.PAN, Messages.Pan_TT);
+        edit = newToggleButton(ToolIcons.EDIT, Messages.EditPoint_TT);
         pointer = newToggleButton(ToolIcons.POINTER, Messages.Plain_Pointer);
 
         if (active)
@@ -201,6 +203,11 @@ public class ToolbarHandler<XTYPE extends Comparable<XTYPE>>
             {
                 selectMouseMode(pan);
                 plot.setMouseMode(MouseMode.PAN);
+            });
+            edit.setOnAction(event ->
+            {
+                selectMouseMode(edit);
+                plot.setMouseMode(MouseMode.EDIT);
             });
             pointer.setOnAction(event ->
             {
@@ -248,7 +255,7 @@ public class ToolbarHandler<XTYPE extends Comparable<XTYPE>>
         return item;
     }
 
-    /** @param mode {@link MouseMode} ZOOM_IN, ZOOM_OUT, PAN or NONE */
+    /** @param mode {@link MouseMode} ZOOM_IN, ZOOM_OUT, PAN, EDIT or NONE */
     public void selectMouseMode(final MouseMode mode)
     {
         if (mode == MouseMode.ZOOM_IN)
@@ -266,6 +273,11 @@ public class ToolbarHandler<XTYPE extends Comparable<XTYPE>>
             selectMouseMode(pan);
             plot.setMouseMode(mode);
         }
+        else if (mode == MouseMode.EDIT)
+        {
+            selectMouseMode(edit);
+            plot.setMouseMode(mode);
+        }
         else
         {
             selectMouseMode(pointer);
@@ -276,7 +288,7 @@ public class ToolbarHandler<XTYPE extends Comparable<XTYPE>>
     /** @param item Tool item to select, all others will be de-selected */
     private void selectMouseMode(final ToggleButton item)
     {
-        for (ToggleButton ti : new ToggleButton[] { zoom_in, zoom_out, pan, pointer })
+        for (ToggleButton ti : new ToggleButton[] { zoom_in, zoom_out, pan, edit, pointer })
             ti.setSelected(ti == item);
     }
 

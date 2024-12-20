@@ -66,6 +66,7 @@ public class Messages
                          Middle,
                          PlotWidget_AutoScale,
                          PlotWidget_Color,
+                         PlotWidget_Editable,
                          PlotWidget_ErrorPV,
                          PlotWidget_GridColor,
                          PlotWidget_LogScale,

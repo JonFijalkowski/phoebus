@@ -39,6 +39,7 @@ import org.csstudio.javafx.rtplot.RTPlotListener;
 import org.csstudio.javafx.rtplot.Trace;
 import org.csstudio.javafx.rtplot.YAxis;
 import org.csstudio.javafx.rtplot.data.PlotDataItem;
+import org.csstudio.javafx.rtplot.data.PlotDataProvider;
 import org.csstudio.javafx.rtplot.internal.undo.ChangeAxisRanges;
 import org.csstudio.javafx.rtplot.internal.undo.UpdateAnnotationAction;
 import org.csstudio.javafx.rtplot.internal.util.GraphicsUtils;
@@ -889,6 +890,65 @@ public class Plot<XTYPE extends Comparable<XTYPE>> extends PlotCanvasBase
         }
         else if ((mouse_mode == MouseMode.ZOOM_IN && clicks == 2)  ||  mouse_mode == MouseMode.ZOOM_OUT)
             zoomInOut(current.getX(), current.getY(), ZOOM_FACTOR);
+        else if (mouse_mode == MouseMode.EDIT)
+        {
+            System.out.println(current);
+            final int x = (int) current.getX();
+            final int y = (int) current.getY();
+            double x1 = Double.parseDouble(x_axis.getValue(x).toString());
+            double y1 = Double.parseDouble(y_axes.get(0).getValue(y).toString());
+            int bestMatchAxis = 0;
+            int bestMatchTrace = 0;
+            int bestMatchIndex = 0;
+            double bestMatchX = 0.0;
+            double bestMatchY = 0.0;
+            double bestMatchDistance = 999.9;
+            double minProximity = 1;
+            for (int axisIndex = 0; axisIndex<y_axes.size(); axisIndex++) {
+                YAxisImpl<XTYPE> axis = y_axes.get(axisIndex);
+
+                //Can't use .size() on axis' traces list/Iterator, so make a manual index
+                int traceIndex = 0;
+                for (Trace<XTYPE> trace : axis.getTraces()) {
+                    try {
+                        System.out.println("Editable trace: " + trace.isEditable());
+                        if(trace.isEditable()){
+                            PlotDataProvider<XTYPE> data =  trace.getData();
+                            int N = data.size();
+                            for (int i = 0; i < N; i++) {
+
+                                PlotDataItem<XTYPE> item = data.get(i);
+                                double x2 = Double.parseDouble(item.getPosition().toString()) ;
+                                double y2 = (double) item.getValue();
+                                double distance = Math.sqrt(Math.pow((x1 - x2), 2) + Math.pow((y1- y2), 2));
+                                if (distance < bestMatchDistance) {
+                                    bestMatchDistance = distance;
+                                    bestMatchIndex = i;
+                                    bestMatchAxis = axisIndex;
+                                    bestMatchTrace = traceIndex;
+                                    bestMatchX = x2;
+                                    bestMatchY = y2;
+                                    //System.out.println(bestMatchDistance);
+                                    //System.out.println(bestMatchIndex);
+                                    //System.out.println(bestMatchTrace);
+                                }
+                            }
+                        }
+
+                    } catch (Exception ex) {
+                        return;
+                    }
+                    traceIndex ++;
+
+                }
+
+
+                System.out.println("Best match found: Axis" + bestMatchAxis + ", Trace " + bestMatchTrace + ", Distance " + bestMatchDistance);
+                System.out.println("Mouse: " + x1 + ", " + y1);
+                System.out.println("Point: " + bestMatchX  + ", " + bestMatchY);
+
+            }
+        }
     }
 
     public static class AxisClickInfo

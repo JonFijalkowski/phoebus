@@ -236,6 +236,7 @@ public class XYPlotRepresentation extends RegionBaseRepresentation<Pane, XYPlotW
                                   model_trace.tracePointSize().getValue(),
                                   model_trace.traceYAxis().getValue());
             trace.setVisible(model_trace.traceVisible().getValue());
+            trace.setEditable(model_trace.traceEditable().getValue());
 
             model_trace.traceName().addUntypedPropertyListener(trace_listener);
             // Not tracking X and Error PVs. Only matter to runtime.
@@ -252,6 +253,8 @@ public class XYPlotRepresentation extends RegionBaseRepresentation<Pane, XYPlotW
             model_trace.traceYValue().addUntypedPropertyListener(value_listener);
             model_trace.traceErrorValue().addUntypedPropertyListener(value_listener);
             model_trace.traceVisible().addUntypedPropertyListener(trace_listener);
+            model_trace.traceEditable().addUntypedPropertyListener(trace_listener);
+
         }
 
         private void traceChanged(final WidgetProperty<?> property, final Object old_value, final Object new_value)
@@ -265,6 +268,7 @@ public class XYPlotRepresentation extends RegionBaseRepresentation<Pane, XYPlotW
             trace.setPointType(map(model_trace.tracePointType().getValue()));
             trace.setPointSize(model_trace.tracePointSize().getValue());
             trace.setVisible(model_trace.traceVisible().getValue());
+            trace.setEditable(model_trace.traceEditable().getValue());
 
             final int desired = model_trace.traceYAxis().getValue();
             if (desired != trace.getYAxis())

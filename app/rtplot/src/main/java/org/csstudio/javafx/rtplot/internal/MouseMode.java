@@ -20,6 +20,8 @@ public enum MouseMode
     ZOOM_IN,
     /** Zoom out where clicked */
     ZOOM_OUT,
+    /** Click and drag plotted data-points */
+    EDIT,
 
     /** Modes from here on are used within the {@link Plot},
      *  they are sub-states of the above.

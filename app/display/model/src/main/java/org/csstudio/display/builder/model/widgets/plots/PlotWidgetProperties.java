@@ -222,6 +222,10 @@ public class PlotWidgetProperties
     /** 'color' */
     public static final WidgetPropertyDescriptor<WidgetColor> traceColor =
         CommonWidgetProperties.newColorPropertyDescriptor(WidgetPropertyCategory.DISPLAY, "color", Messages.PlotWidget_Color);
+    /** 'editable' */
+    private static final WidgetPropertyDescriptor<Boolean> traceEditable =
+            CommonWidgetProperties.newBooleanPropertyDescriptor(WidgetPropertyCategory.BEHAVIOR, "editable", Messages.PlotWidget_Editable);
+
     /** 'trace_type' */
     public static final WidgetPropertyDescriptor<PlotWidgetTraceType> traceType =
         new WidgetPropertyDescriptor<>(
@@ -283,7 +287,9 @@ public class PlotWidgetProperties
                                 traceXValue.createProperty(widget, null),
                                 traceYValue.createProperty(widget, null),
                                 traceErrValue.createProperty(widget, null),
-                                CommonWidgetProperties.propVisible.createProperty(widget, true)));
+                                CommonWidgetProperties.propVisible.createProperty(widget, true),
+                                traceEditable.createProperty(widget, false)
+                          ));
         }
         /** @return Trace name */
         public WidgetProperty<String> traceName()                   { return getElement(0); }
@@ -315,6 +321,8 @@ public class PlotWidgetProperties
         public WidgetProperty<VType> traceErrorValue()              { return getElement(13); }
         /** @return Is trace visible? */
         public WidgetProperty<Boolean> traceVisible()               { return getElement(14); }
+        /** @return Is trace editable? */
+        public WidgetProperty<Boolean> traceEditable()               { return getElement(15); }
     };
 
     /** 'traces' array */

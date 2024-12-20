@@ -38,7 +38,7 @@ import javafx.scene.Scene;
 @SuppressWarnings("nls")
 public class PlotCursors
 {
-    private static Cursor cursor_pan, cursor_zoom_in, cursor_zoom_out;
+    private static Cursor cursor_pan, cursor_zoom_in, cursor_zoom_out, cursor_edit;
 
     static
     {
@@ -48,6 +48,7 @@ public class PlotCursors
             cursor_pan = new ImageCursor(Activator.getIcon("cursor_pan"), 8, 8);
             cursor_zoom_in = new ImageCursor(Activator.getIcon("cursor_zoom_in"), 5, 5);
             cursor_zoom_out = new ImageCursor(Activator.getIcon("cursor_zoom_out"), 5, 5);
+            cursor_edit = new ImageCursor(Activator.getIcon("cursor_edit"), 1, 15);
         }
         catch (Exception ex)
         {
@@ -56,6 +57,7 @@ public class PlotCursors
             cursor_pan = Cursor.HAND;
             cursor_zoom_in = Cursor.DEFAULT;
             cursor_zoom_out = Cursor.DEFAULT;
+            cursor_edit = Cursor.HAND;
         }
     }
 
@@ -101,6 +103,8 @@ public class PlotCursors
     {
         switch (mode)
         {
+        case EDIT:
+            return cursor_edit;
         case PAN:
         case PAN_X:
         case PAN_Y:

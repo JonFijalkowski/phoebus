@@ -37,6 +37,7 @@ public class Messages
     public static String EditAnnotation_Text;
     public static String EditAnnotation_Trace;
     public static String EditAnnotation_Info;
+    public static String EditPoint_TT;
     public static String ImageConfigAutoScale;
     public static String ImageConfigEnd;
     public static String ImageConfigHdr;

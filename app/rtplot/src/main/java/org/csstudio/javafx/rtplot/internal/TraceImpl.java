@@ -31,6 +31,8 @@ public class TraceImpl<XTYPE extends Comparable<XTYPE>> implements Trace<XTYPE>
 
     private volatile boolean visible = true;
 
+    private volatile boolean editable = false;
+
     private volatile String name;
 
     private volatile String units;
@@ -85,6 +87,20 @@ public class TraceImpl<XTYPE extends Comparable<XTYPE>> implements Trace<XTYPE>
     public void setVisible(final boolean visible)
     {
         this.visible = visible;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean isEditable()
+    {
+        return editable;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setEditable(final boolean editable)
+    {
+        this.editable = editable;
     }
 
     /** {@inheritDoc} */
