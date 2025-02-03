@@ -38,8 +38,10 @@ import org.csstudio.javafx.rtplot.PlotMarker;
 import org.csstudio.javafx.rtplot.RTPlotListener;
 import org.csstudio.javafx.rtplot.Trace;
 import org.csstudio.javafx.rtplot.YAxis;
+import org.csstudio.javafx.rtplot.data.ArrayPlotDataProvider;
 import org.csstudio.javafx.rtplot.data.PlotDataItem;
 import org.csstudio.javafx.rtplot.data.PlotDataProvider;
+import org.csstudio.javafx.rtplot.data.SimpleDataItem;
 import org.csstudio.javafx.rtplot.internal.undo.ChangeAxisRanges;
 import org.csstudio.javafx.rtplot.internal.undo.UpdateAnnotationAction;
 import org.csstudio.javafx.rtplot.internal.util.GraphicsUtils;
@@ -120,6 +122,9 @@ public class Plot<XTYPE extends Comparable<XTYPE>> extends PlotCanvasBase
     private Point2D mouse_annotation_start_offset;
     private XTYPE mouse_annotation_start_position;
     private double mouse_annotation_start_value;
+
+    // object to handle plot point mouse interaction
+    private final PlotEdit<XTYPE> plot_edit = new PlotEdit<XTYPE>();
 
     final private List<RTPlotListener<XTYPE>> listeners = new CopyOnWriteArrayList<>();
 
@@ -815,7 +820,7 @@ public class Plot<XTYPE extends Comparable<XTYPE>> extends PlotCanvasBase
             return;
         final Point2D current = new Point2D(e.getX(), e.getY());
         mouse_start = mouse_current = Optional.of(current);
-
+        System.out.println(e.getEventType().getName());
         final int clicks = e.getClickCount();
         if (selectMouseAnnotation() ||
             selectPlotMarker())
@@ -889,65 +894,22 @@ public class Plot<XTYPE extends Comparable<XTYPE>> extends PlotCanvasBase
             }
         }
         else if ((mouse_mode == MouseMode.ZOOM_IN && clicks == 2)  ||  mouse_mode == MouseMode.ZOOM_OUT)
+        {
             zoomInOut(current.getX(), current.getY(), ZOOM_FACTOR);
+        }
         else if (mouse_mode == MouseMode.EDIT)
         {
             System.out.println(current);
-            final int x = (int) current.getX();
-            final int y = (int) current.getY();
-            double x1 = Double.parseDouble(x_axis.getValue(x).toString());
-            double y1 = Double.parseDouble(y_axes.get(0).getValue(y).toString());
-            int bestMatchAxis = 0;
-            int bestMatchTrace = 0;
-            int bestMatchIndex = 0;
-            double bestMatchX = 0.0;
-            double bestMatchY = 0.0;
-            double bestMatchDistance = 999.9;
-            double minProximity = 1;
-            for (int axisIndex = 0; axisIndex<y_axes.size(); axisIndex++) {
-                YAxisImpl<XTYPE> axis = y_axes.get(axisIndex);
+            final double x1 = current.getX();
+            final double y1 = current.getY();
 
-                //Can't use .size() on axis' traces list/Iterator, so make a manual index
-                int traceIndex = 0;
-                for (Trace<XTYPE> trace : axis.getTraces()) {
-                    try {
-                        System.out.println("Editable trace: " + trace.isEditable());
-                        if(trace.isEditable()){
-                            PlotDataProvider<XTYPE> data =  trace.getData();
-                            int N = data.size();
-                            for (int i = 0; i < N; i++) {
-
-                                PlotDataItem<XTYPE> item = data.get(i);
-                                double x2 = Double.parseDouble(item.getPosition().toString()) ;
-                                double y2 = (double) item.getValue();
-                                double distance = Math.sqrt(Math.pow((x1 - x2), 2) + Math.pow((y1- y2), 2));
-                                if (distance < bestMatchDistance) {
-                                    bestMatchDistance = distance;
-                                    bestMatchIndex = i;
-                                    bestMatchAxis = axisIndex;
-                                    bestMatchTrace = traceIndex;
-                                    bestMatchX = x2;
-                                    bestMatchY = y2;
-                                    //System.out.println(bestMatchDistance);
-                                    //System.out.println(bestMatchIndex);
-                                    //System.out.println(bestMatchTrace);
-                                }
-                            }
-                        }
-
-                    } catch (Exception ex) {
-                        return;
-                    }
-                    traceIndex ++;
-
-                }
-
-
-                System.out.println("Best match found: Axis" + bestMatchAxis + ", Trace " + bestMatchTrace + ", Distance " + bestMatchDistance);
-                System.out.println("Mouse: " + x1 + ", " + y1);
-                System.out.println("Point: " + bestMatchX  + ", " + bestMatchY);
-
+            if ( plot_edit.selectClosestPoint(y_axes, x_axis, x1, y1)) {
+                System.out.println("Point matched");
             }
+
+            System.out.println("Best match found: Axis" + plot_edit.getSelectedAxis() + ", Trace " + plot_edit.getSelectedTrace());
+            System.out.println("Mouse screen pos: " + x1 + ", " + y1);
+            System.out.println("Point on graph: " + plot_edit.getPosX()  + ", " + plot_edit.getPosY());
         }
     }
 
@@ -1093,6 +1055,15 @@ public class Plot<XTYPE extends Comparable<XTYPE>> extends PlotCanvasBase
         {   // Show mouse feedback for ongoing zoom
             requestRedraw();
         }
+        else if (mouse_mode == MouseMode.EDIT)
+        {   // Mouse DRAG and MOVE are combined, so check that there is a point being edited
+            if (plot_edit.isPointSelected()) {
+                System.out.println("Dragging Mouse");
+                plot_edit.setPosX(x_axis.getValue( (int) e.getX() ));
+                plot_edit.setPosY(y_axes.get(plot_edit.getSelectedAxis()).getValue( (int) e.getY()) );
+                System.out.println("X: " + plot_edit.getPosX() + " Y: " + plot_edit.getPosX());
+            }
+        }
         else if (show_crosshair)
             requestRedraw();
     }
@@ -1200,6 +1171,30 @@ public class Plot<XTYPE extends Comparable<XTYPE>> extends PlotCanvasBase
                                                          y_axes, original_y_ranges, new_y_ranges, original_autoscale_values));
             }
             mouse_mode = MouseMode.ZOOM_IN;
+        }
+        else if (mouse_mode == MouseMode.EDIT)
+        {   //drag released, point no longer selected
+            System.out.println("Drag stopped");
+            System.out.println(mouse_current.orElse(null));
+            System.out.println("X: " + plot_edit.getPosX() + " Y: " + plot_edit.getPosY());
+            plot_edit.setPointSelected(false);
+
+            //update trace with value changed to new current mouse pos
+
+            //testing stuff - update marker pos instead
+            plot_markers.get(0).setPosition(plot_edit.getPosX());
+
+            TraceImpl<XTYPE> trace = (TraceImpl<XTYPE>) traces.get(plot_edit.getSelectedTrace());
+            ArrayPlotDataProvider<XTYPE> data = (ArrayPlotDataProvider<XTYPE>) trace.getData();
+            ArrayPlotDataProvider<XTYPE> blankData = new ArrayPlotDataProvider<XTYPE>();
+            try {
+                blankData.add(new SimpleDataItem<XTYPE>(null, 0));
+            } catch (Exception ex) {
+                System.out.println("Adding blank data died a horrible death");
+            }
+            trace.updateData(new ArrayPlotDataProvider<>());
+            requestUpdate();
+            firePlotMarkersChanged(0);
         }
     }
 
