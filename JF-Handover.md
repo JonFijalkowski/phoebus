@@ -190,28 +190,31 @@ These are stored in separate directories, but follow matching name structures:
 - `phoebus\app\display\model\src\main\java\org\csstudio\display\builder\model\` For Models (`<name>Widget.java`)
 - `phoebus\app\display\runtime\src\main\java\org\csstudio\display\builder\runtime\` For Runtimes (`<name>WidgetRuntime.java`)
 - `phoebus\app\display\representation-javafx\src\main\java\org\csstudio\display\builder\representation\javafx\` For Represenations (`<name>WidgetRepresentation.java`)
+
 #### Model (eg: `XYPlotWidget.java`)
 Responsible  solely for defining and setting up the data/properties used by the widget - its *model*. There isn't any complex logic here, or any actions beyond setting and accessing data.
-This can include some processing of the data however, such as for XYPlot, where legacy input is converted into a newer format, so older usages can remain compatible.
+This can include some processing of the data however, such as for `XYPlot`, where legacy input is converted into a newer format, so older usages can remain compatible.
 This, however, still does not breach the primary rule of the model having no knowledge of how it is used - it doesn't "do" anything.
 
 #### Runtime (eg: `XYPlotWidgetRuntime.java`)
 This handles the connection of the PVs to the Properties, and responds to changes in either during the application's *runtime*.
 This does not have any knowledge or responsibility for what is displayed or how, simply the passing of data between the PVs and the model.
 On initialisation, runtime actions are added, then on start, the PVs are bound to the widget's properties.
-They inherit from a base WidgetRuntime, which includes all the base-level functions each widget requires, then the inheriting runtimes add their own bindings and functions on top.
+They inherit from a base `WidgetRuntime`, which includes all the base-level functions each widget requires, then the inheriting runtimes add their own bindings and functions on top.
 
 #### Representation (eg: `XYPlotWidgetRepresentation.java`)
 This handles the actual content the widget is displaying - What is being put onto the GUI, both what is being drawn, but also any user interaction if present.
 This basically means all the things related to the displayed content of the widget, what it does when data/props are updated, as well as adding listeners and handlers for user interaction.
 This doesn't require any knowledge/interaction with the PVs, since all the representation needs is the properties in the widget's Model. The Runtime handles changes between Model and PV.
 
-### Explanation of files changed (documentation)
+### Explanation of files changed
 Code documentation (potentially contributed back to Phoebus devs) - code itself is reasonably documented, but the overall structure of the project, what's involved in what, and just the general "what's going on" isn't easy to read from the codebase from scratch.
 
 #### `Plot.java` for mouse interaction
 This is the "base" point of user interaction with the plot ui element. It has listeners and handling for mouse interaction, implements the toolbar's different mouse modes, and draws the graph ui element.
 Initially all the new mouse interaction code was added here, but it has since been moved to methods in `PlotEdit.java`
+
+XYPlotRepresentation uses `RTValuePlot`, an extension of `RTPlot` that specifically uses `Double` values on the X axis, which in itself has a `Plot` instance variable that it wraps the functions of.
 
 #### `PlotEdit.java` edit mode handler object (name subject to change)
 This is a new class added for handling the new mouse interaction included with Point Editing.
@@ -219,27 +222,37 @@ The stored/tracked data for the point-editing behaviour is:
 - Index of selected point's axis (multiple y-indexes can be present)
 - Index of selected point's trace in said axis (this can then be used for lookup and accessing trace data)
 - Index of selected point within the trace (the data at this index can then be replaced with the new position)
-- X and Y coordinates, in graph-space, of the new position (this is what )
-  There are two primary reasons for this separation. The function which finds the closest editable point to the cursor is quite large and has many nested loops. Moving this to a separate file means it doesn't fill up the already large `Plot.java` class.
-  Additionally, since all the internal variables in the `Plot` class are protected, having all the edit-mode-related values in a single object would mean only one getter (for PlotEdit) would be necessary to get the edit mode info at upper layers. This also therefore doesn't expose any "active" information about the interface, so it isn't in contradiction with the coding standards in the same files.
-  PlotEdit file and what the things it needs to track are (selections, indexes, what the prox calculation and selection function is for)
+- X and Y coordinates, in graph-space, of the new position (this is what the selected point in the PV would be updated to )
 
-#### `Editable` Property (multiple files)
-A new property has been added to the `Trace.java` class which allows for Traces (each line on the graph, corresponding to a PV) to be interacted with using the Edit mouse mode.
-When iterating through the different traces to find the closest match, only traces marked as "editable" are considered.
-stuff about the Editable property, where the changes were made
+There are two primary reasons for this separation. The function which finds the closest editable point to the cursor is quite large and has many nested loops. Moving this to a separate file means it doesn't fill up the already large `Plot.java` class.
+Additionally, since all the internal variables in the `Plot` class are protected, having all the edit-mode-related values in a single object would mean only one getter (for PlotEdit) would be necessary to get the edit mode info at upper layers. This also therefore doesn't expose any "active" information about the interface, so it isn't in contradiction with the coding standards in the same files.
+PlotEdit file and what the things it needs to track are (selections, indexes, what the prox calculation and selection function is for)
+
+#### `ToolbarHandler.java`
+A new `EDIT` mouse mode was necessary to safely separate the different types of existing mouse interaction from the new point-drag-and-drop being added in this project.
+It is part of the same Radio selection (only-one-selected-at-a-time) as the other modes, which means editing cannot be possible while other modes are using mouse input.
+
+A new sprite was added for the Edit Mode button, which is also used for replacing the cursor when editing, to make it clear the mode has been enabled.
+
+New messages also had to be added for this, and the Editable property, so they'd have text appear when hovered over (with french translations, just to be sure it doesn't break from a missing reference)
 
 #### `Trace.java` adding the Editable property
 The class for storing and accessing data surrounding the graph lines and points drawn on the Plot. A new boolean property `editable` has been added as a flag so that the point-selecting algorithm knows which traces to ignore. It iterates over all the traces in each axis, but will only compare cursor position against points in traces marked as editable.
-Accessing a trace's data (the actual list of `Double` Y values) from here is only possible with single random-access, so obtaining a whole copy at once is complicated, especially considering the multithread/locking behaviour used to control data access/usage in a complex GUI like phoebus.
+
+Since the property was added to the `Trace` class, all other classes and methods which interacted with (set up, changed and accessed) trace properties had to be updated to handle this new property.
+As a result, `PlotWidgetProperties` and `XYPlotRepresentation` had to have additions to handle the new property.
+Since `Trace` is an abstracted interface, the implementation, `TraceImpl` also had to be updated to include relevant methods for handling the `editable` property.
+
+Accessing a trace's data (the actual list of `Double` typed Y values, in the case of `XYPlot`) from here is only possible with single random-access, so obtaining a whole copy at once is complicated, especially considering the multithread/locking behaviour used to control data access/usage in a complex GUI like phoebus.
 Colours and styling are defined here, so it's possible the line style or colour could be changed when an edit is occurring, then replacing with the original once complete. This would make it more clear which trace is being edited, and when an edit is being made.
+
 
 ### Local Development Setup (docker stuff, IntelliJ)
 Current steps that seem to work:
-Pull local copy of Phoebus (from the fork https://github.com/JonFijalkowski/phoebus.git)
-Using [Intellij](https://www.jetbrains.com/idea/download/?section=windows) (community edition works just fine), load up the Phoebus project
-Follow relevant steps on Phoebus' README file for IntelliJ development
-Sign in to Harbor (may not be necessary for locally-hosted containers for PVs and testing)
-Start up relevant docker containers on VSCode (Docker plugin) - such as `Tune-Control-Epics` [Link](https://gitlab.stfc.ac.uk/isis-accelerator-controls/playground/kathryn/tune-control-epics), which is what has been used for testing and development purposes.
-Run the "Phoebus" application run config (top right of Intellij), which should compile the project and run it. Debug messages will appear in the same console that pops up.
-If using breakpoints for debugging purposes, use the Debug button next to the "Play" button instead.
+- Pull local copy of Phoebus (from the fork https://github.com/JonFijalkowski/phoebus.git)
+- Using [Intellij](https://www.jetbrains.com/idea/download/?section=windows) (community edition works just fine), load up the Phoebus project
+- Follow relevant steps on Phoebus' README file for IntelliJ development
+- Sign in to Harbor (may not be necessary for locally-hosted containers for PVs and testing)
+- Start up relevant docker containers on VSCode (Docker plugin) - such as `Tune-Control-Epics` [Link](https://gitlab.stfc.ac.uk/isis-accelerator-controls/playground/kathryn/tune-control-epics), which is what has been used for testing and development purposes.
+- Run the "Phoebus" application run config (top right of Intellij), which should compile the project and run it. Debug messages will appear in the same console that pops up.
+- If using breakpoints for debugging purposes, use the Debug button next to the "Play" button instead.
