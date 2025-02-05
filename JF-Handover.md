@@ -106,6 +106,7 @@ There are specific checks that can determine when a point is clicked, when the m
 Originally, it was planned to have local (as in, PVs with `loc://`) copies of "live" PVs, in order to be able to make changes without immediately applying it to a potentially currently-used PV, while still providing something that can be plotted on the graph.
 However, due to the way local PVs work, and how PVs work in Phoebus' runtime, this method did not seem to be possible; the type of a PV must be known in advance, and if a PV has not yet been received/fetched, the type is not known, therefore a copy cannot be made.
 A potential workaround was to have a script make the copied PVs in runtime once the originals were fetched, but this would be a lot more complex, and still require integrating into the plot's functioning.
+A discussion on this topic was had at: https://github.com/ControlSystemStudio/phoebus/discussions/3213, but it resulted in realising that dynamically creating local PV copies would be infeasible, or require too many workarounds.
 
 The current design for this instead adds a new "Editable" property for traces added to a plot, which is a flag that allows its points to be moved via mouse interaction when in edit mode.
 New PVs are added by a user, specifically for use within Phoebus,
@@ -157,7 +158,7 @@ Editing an X value for these would be much more complicated, and could move othe
 
 #### Refactoring & Code Cleanup
 - Removing debug messages
-- Adding further documentation, doc blocks for classes and methods
+- Adding further documentation, doc blocks for classes and methods added in the project
 - Renaming `PlotEdit.java` to a more descriptive/relevant name, such as `EditModeHandler.java` or similar
 
 ### **How can the other requirements / desired features be done, and what challenges may impede them?**
@@ -172,14 +173,12 @@ This would be a significant undertaking if it is to cover all PVs. Even for a se
 
 
 ## Knowledge Sharing
-- What process did I go through (evolution of the project, findings along the way, decisions made as a result - eg: switching to Editable PVs rather than some complex system of local PVs)
-- What the code I've written does (not just what requirements met, how the code I've done fulfils the requirements/does what it does)
-- (what does each file do in more understandable terms, larger-picture stuff, like what Kay said, but perhaps a bit more specifics for the XYPlot Widget etc)
 ### Project Structure / Widget composition
 The Phoebus codebase is quite large and complex, meaning it can be difficult to understand the class hierarchy, the relation between the different layers, and what each class is responsible for.
+
 In the case of the XYPlot widget (the focus of this project):
 - The widget itself has a Model(`XTPlotWidget`), Runtime(`XYPLotWidgetRuntime`) and Representation(`XYPlotWidgetRepresenatation`)  The Representation uses an:
-- `RTValuePlot`, for creating a UI element to plot values, specifically numbers, on a graph
+- `RTValuePlot`, for creating a UI element to plot values, specifically numbers, on a graph - an extension of:
 - `RTPlot`, a base implementation / generic form of a Graph/Plot UI element, to wrap
 - `Plot`, This contains draw instructions for the plot, and is the layer directly interfacing with user interaction (toolbar mouse modes)
 
@@ -208,6 +207,7 @@ This basically means all the things related to the displayed content of the widg
 This doesn't require any knowledge/interaction with the PVs, since all the representation needs is the properties in the widget's Model. The Runtime handles changes between Model and PV.
 
 ### Explanation of files changed
+This section is essentially a more detailed set of documentation for the code added. 
 Code documentation (potentially contributed back to Phoebus devs) - code itself is reasonably documented, but the overall structure of the project, what's involved in what, and just the general "what's going on" isn't easy to read from the codebase from scratch.
 
 #### `Plot.java` for mouse interaction
@@ -256,3 +256,10 @@ Current steps that seem to work:
 - Start up relevant docker containers on VSCode (Docker plugin) - such as `Tune-Control-Epics` [Link](https://gitlab.stfc.ac.uk/isis-accelerator-controls/playground/kathryn/tune-control-epics), which is what has been used for testing and development purposes.
 - Run the "Phoebus" application run config (top right of Intellij), which should compile the project and run it. Debug messages will appear in the same console that pops up.
 - If using breakpoints for debugging purposes, use the Debug button next to the "Play" button instead.
+
+### Useful resources & Links
+- Phoebus ReadTheDocs page: https://control-system-studio.readthedocs.io/en/latest/
+- Project's fork of Phoebus: https://github.com/JonFijalkowski/phoebus/tree/master
+- Issue/Proposal on Phoebus Repo: https://github.com/ControlSystemStudio/phoebus/issues/3167 (requires updating)
+- Discussion of writing to NTTable PVs (similar concepts to writing to list PVs the Edit Mode will need to do): https://github.com/ControlSystemStudio/phoebus/issues/1214
+- Discussion and implementation of a new Widget from scratch, which gives some info on how widgets are implemented and creation of new interface elements: https://github.com/ControlSystemStudio/phoebus/discussions/2718, https://github.com/ControlSystemStudio/phoebus/pull/2745/files
